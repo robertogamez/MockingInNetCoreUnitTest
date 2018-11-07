@@ -31,6 +31,7 @@ namespace CreditCardApplications.Tests
             var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
 
             mockValidator.Setup(x => x.IsValid(It.IsAny<string>())).Returns(true);
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
 
             var application = new CreditCardApplication { Age = 19 };
 
@@ -50,6 +51,7 @@ namespace CreditCardApplications.Tests
             //    .Returns(true);
             //mockValidator.Setup(x => x.IsValid(It.IsIn("x", "y", "z"))).Returns(true);
             mockValidator.Setup(x => x.IsValid(It.IsInRange("a", "z", Range.Inclusive))).Returns(true);
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("EXPIRED");
 
             var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
 
@@ -72,6 +74,7 @@ namespace CreditCardApplications.Tests
                 = new Mock<IFrequentFlyerNumberValidator>(MockBehavior.Strict);
 
             mockValidator.Setup(x => x.IsValid(It.IsAny<string>())).Returns(true);
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
 
             var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
 
@@ -90,6 +93,7 @@ namespace CreditCardApplications.Tests
 
             bool isValid = true;
             mockValidator.Setup(x => x.IsValid(It.IsAny<string>(), out isValid));
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
 
             var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
 
@@ -132,6 +136,27 @@ namespace CreditCardApplications.Tests
         string GetLicenseKeyExpiryString()
         {
             return "EXPIRED";
+        }
+
+        [Fact]
+        public void UseDetailedLookupForOlderApplications()
+        {
+            var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+            mockValidator.SetupAllProperties();
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+            //mockValidator.SetupProperty(x => x.ValidationMode);
+
+            var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+
+            var application = new CreditCardApplication
+            {
+                Age = 30
+            };
+
+            CreditCardApplicationDecision decision = sut.Evaluate(application);
+
+            Assert.Equal(ValidationMode.Detailed, mockValidator.Object.ValidationMode);
         }
 
     }
