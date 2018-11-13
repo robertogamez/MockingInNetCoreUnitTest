@@ -10,12 +10,22 @@ namespace CreditCardApplications
         private const int HighIncomeThreshhold = 100_000;
         private const int LowIncomeThreshhold = 20_000;
 
+        public int ValidatorLookupCount { get; set; }
+
         public CreditCardApplicationEvaluator(IFrequentFlyerNumberValidator validator)
         {
             _validator = validator ?? 
                 throw new ArgumentNullException(nameof(validator));
+
+            _validator.ValidatorLookupPerformed += ValidatorLookupPerformed;
         }
-     
+
+        private void ValidatorLookupPerformed(object sender, EventArgs args)
+        {
+            ValidatorLookupCount++;
+        }
+
+
         public CreditCardApplicationDecision Evaluate(CreditCardApplication application)
         {
             if (application.GrossAnnualIncome >= HighIncomeThreshhold)
@@ -31,8 +41,17 @@ namespace CreditCardApplications
             _validator.ValidationMode = application.Age >= 30 ? ValidationMode.Detailed
                                                               : ValidationMode.Quick;
 
-            var isValidFrequentFlyerNumber
-                = _validator.IsValid(application.FrequentFlyerNumber);
+            bool isValidFrequentFlyerNumber;
+            try
+            {
+                isValidFrequentFlyerNumber
+                    = _validator.IsValid(application.FrequentFlyerNumber);
+            }
+            catch (Exception)
+            {
+                return CreditCardApplicationDecision.ReferredToHuman;
+                throw;
+            }
 
             if (!isValidFrequentFlyerNumber)
             {
